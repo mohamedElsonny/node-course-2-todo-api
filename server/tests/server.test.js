@@ -294,3 +294,75 @@ describe('POST /users', () => {
     });
 
 });
+
+
+describe('POST /users/login', () => {
+    it('should login user and return with token', (done) => {
+        let email = users[1].email;
+        let password = users[1].password;
+
+        request(app)
+            .post('/users/login')
+            .send({ email, password })
+            .expect(200)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toExist();
+                expect(res.body.email).toBe(email);
+                expect(res.body._id).toExist();
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                User.findOne({ email })
+                    .then((user) => {
+                        expect(user.tokens[0]).toInclude({
+                            access: 'auth',
+                            token: res.headers['x-auth']
+                        });
+                        done();
+                    })
+                    .catch(e => done(e));
+            });
+    });
+
+    it('should return error on signing with not exist email', (done) => {
+        let email = 'moElsonny@example.com';
+        let password = 'new password';
+
+        request(app)
+            .post('/users/login')
+            .send({ email, password })
+            .expect(400)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toNotExist();
+            })
+            .end(done);
+    });
+
+    it('should return error on signing with invalid password', (done) => {
+        let email = users[1].email;
+        let password = 'invalid password';
+
+        request(app)
+            .post('/users/login')
+            .send({ email, password })
+            .expect(400)
+            .expect((res) => {
+                expect(res.headers['x-auth']).toNotExist();
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                User.findOne({ email })
+                    .then(user => {
+                        expect(user.tokens.length).toBe(0);
+                        done();
+                    })
+                    .catch(e => done(e));
+            });
+    });
+});
