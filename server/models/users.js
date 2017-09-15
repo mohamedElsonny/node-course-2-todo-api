@@ -55,6 +55,15 @@ UserSchema.methods = {
         user.tokens.push({ access, token });
 
         return user.save().then(() => token);
+    },
+    removeToken(token) {
+        var user = this;
+
+        return user.update({
+            $pull: {
+                tokens: { token }
+            }
+        });
     }
 };
 
@@ -76,21 +85,22 @@ UserSchema.statics = {
     },
     findByCredintials(email, password) {
         var User = this;
-        return User.findOne({ email }).then((user) => {
-            if (!user) {
-                return Promise.reject();
-            }
+        return User.findOne({ email })
+            .then((user) => {
+                if (!user) {
+                    return Promise.reject();
+                }
 
-            return new Promise((resolve, reject) => {
-                bcrypt.compare(password.toString(), user.password, (err, res) => {
-                    if (!err && res) {
-                        resolve(user);
-                    } else {
-                        reject();
-                    }
+                return new Promise((resolve, reject) => {
+                    bcrypt.compare(password.toString(), user.password, (err, res) => {
+                        if (!err && res) {
+                            resolve(user);
+                        } else {
+                            reject();
+                        }
+                    });
                 });
             });
-        });
     }
 };
 
